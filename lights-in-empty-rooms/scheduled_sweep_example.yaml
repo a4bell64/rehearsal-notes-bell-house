@@ -1,0 +1,29 @@
+# A scheduled open/close that raises the flag BEFORE the first blind moves,
+# so sensors are already being ignored when movement starts.
+# mode: single (not restart), so the 90 s delay here can't be cut short.
+alias: Blinds - close at night
+triggers:
+  - trigger: time
+    at: "20:00:00"
+actions:
+  - alias: Raise the flag before anything moves
+    action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.blinds_moving
+  - action: cover.set_cover_position
+    data:
+      position: 0
+    target:
+      entity_id:
+        - cover.dining_left
+        - cover.dining_center
+        - cover.dining_right
+        - cover.bedroom_left
+        - cover.bedroom_right
+  - alias: Hold the flag while blinds travel and sensors settle
+    delay:
+      seconds: 90
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.blinds_moving
+mode: single

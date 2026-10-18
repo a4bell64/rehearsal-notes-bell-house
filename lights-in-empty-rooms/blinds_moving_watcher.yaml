@@ -1,0 +1,24 @@
+# Raise "Blinds Moving" whenever any watched blind moves; lower it 90 s after the last move.
+# Keep this as its OWN automation. If your blinds automation runs in restart mode,
+# a delay placed inside it gets cut short and can leave the flag stuck on.
+alias: Blinds Moving - watcher
+description: >-
+  Turns input_boolean.blinds_moving on while any listed blind moves and off 90 s
+  after the last movement. mode: restart means every new movement starts the
+  90 s over.
+triggers:
+  - trigger: state
+    entity_id:
+      - cover.dining_left
+      - cover.dining_center
+      - cover.dining_right
+actions:
+  - action: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.blinds_moving
+  - delay:
+      seconds: 90
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.blinds_moving
+mode: restart

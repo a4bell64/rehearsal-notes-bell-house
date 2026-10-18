@@ -1,0 +1,27 @@
+# If the flag is ever stuck on, presence lighting quietly stops in every gated
+# room with no error anywhere. This clears it after 10 minutes, or at startup,
+# and tells you.
+alias: Blinds Moving - safety net
+triggers:
+  - trigger: state
+    entity_id: input_boolean.blinds_moving
+    to: "on"
+    for:
+      minutes: 10
+  - trigger: homeassistant
+    event: start
+conditions:
+  - condition: state
+    entity_id: input_boolean.blinds_moving
+    state: "on"
+actions:
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.blinds_moving
+  - action: notify.notify
+    data:
+      title: Blinds flag cleared
+      message: >-
+        Blinds Moving was stuck on and has been cleared. Presence lighting was
+        paused while it was on.
+mode: single
