@@ -8,7 +8,7 @@ Full story: [Rehearsal Notes #3 on the Home Assistant forum](https://community.h
 
 ## What we measured
 
-- **Several sensor types tripped on the same blinds:** an Everything Presence Pro, an Everything Presence Lite and a Sonoff SNZB-06P24 (all mmWave radar). On one evening close, the EP Pro tripped 0.9 s after the blind started moving and the EP Lite 1.5 s after.
+- **Several sensor types tripped on the same blinds:** an Everything Presence Pro, an Everything Presence Lite and a Sonoff SNZB-06P24 (all mmWave radar), and a Third Reality R2 (an ordinary PIR motion sensor), which turned the lights on. On one evening close, the EP Pro tripped 0.9 s after the blind started moving and the EP Lite 1.5 s after.
 - **One type didn't:** the Aqara FP300 has not tripped on a moving blind in any of our tests.
 - **Guest room, one day:** the EP Lite turned on 1 to 7 seconds after six of the six blind movements. An Aqara FP300 in the same room ignored all six. (One room, one day. Interesting, not proof.)
 - **Dining room, one evening:** a new hot-afternoon rule moved the blinds up to four times an hour. The radar tripped about 3 s after each close and the lights came on at full brightness, three times in one hour, in an empty room.
