@@ -11,7 +11,7 @@ The name comes from band rehearsal. A rehearsal is where you find the wrong note
 | # | Note | What it fixes | Code | Story |
 |---|---|---|---|---|
 | 3 | [Lights coming on in empty rooms](lights-in-empty-rooms/) | Moving blinds fooling presence sensors | Yes | [Forum post](https://community.home-assistant.io/t/rehearsal-notes-from-bell-house-3-lights-coming-on-in-empty-rooms/1029340) |
-| 4 | [The floodlight that wouldn't turn off](floodlight-backstop/) | Floodlights left on, and one that hangs until its power is cut | Yes | Forum post (coming) |
+| 4 | [The floodlight that wouldn't turn off](floodlight-backstop/) | Floodlights left on, and one that hangs until its power is cut | Yes | [Forum post](https://community.home-assistant.io/t/rehearsal-notes-from-bell-house-4-the-floodlight-that-wouldnt-turn-off/1029512) |
 
 Earlier notes (stories only, for now):
 
