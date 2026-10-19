@@ -1,7 +1,9 @@
 # #4 The floodlight that wouldn't turn off
 
 **The problem:** floodlights left on long after they were needed, and one floodlight that latched on at dusk and ignored every "off".
+
 **The cause:** two different things. Lights that Home Assistant turns on don't get the floodlight's own 15-second shutoff. And one unit started hanging, and only a power cut cleared it.
+
 **The fix:** a backstop that turns off any floodlight left on with no motion, and if a light refuses twice, restarts the PoE switch port that powers it.
 
 Full story: Rehearsal Notes #4 on the Home Assistant forum (link coming)
