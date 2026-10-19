@@ -1,0 +1,135 @@
+# Floodlight backstop: turns off a floodlight that has been left on with no
+# motion, and restarts its PoE switch port if it refuses "off" twice.
+#
+# Example names: two floodlights here. Add one line per light to "watch"
+# (its own motion sensor and its paired camera's motion sensor) and to
+# "port_btn" (the UniFi Network power-cycle button for the switch port
+# that powers it). If you move a light to another port, update port_btn.
+alias: Floodlight backstop
+description: >-
+  A floodlight counts as left on when it has been on 15 minutes and neither
+  its own motion sensor nor its paired camera has seen motion in the last
+  60 seconds. Those get "off", a second "off" 20 seconds later, and if a
+  light still refuses, a power cycle of its switch port (at most once per
+  port every 2 hours). Then one alert saying what happened.
+triggers:
+  # A light left on is handled right at 15 minutes...
+  - trigger: state
+    entity_id:
+      - light.floodlight_front
+      - light.floodlight_back
+    to: "on"
+    for:
+      minutes: 15
+  # ...and every 5 minutes we look again, for lights skipped because of
+  # motion and for lights still on after a Home Assistant restart.
+  - trigger: time_pattern
+    minutes: /5
+variables:
+  watch:
+    light.floodlight_front:
+      - binary_sensor.floodlight_front_motion
+      - binary_sensor.camera_front_motion
+    light.floodlight_back:
+      - binary_sensor.floodlight_back_motion
+      - binary_sensor.camera_back_motion
+  port_btn:
+    light.floodlight_front: button.my_switch_port_29_power_cycle
+    light.floodlight_back: button.my_switch_port_13_power_cycle
+  # On 15+ minutes and no motion from either sensor in the last 60 seconds.
+  # A light held on by its own motion is doing its job, so it is left alone.
+  # A missing or unavailable sensor counts as no motion, so a dead camera
+  # can't block the backstop.
+  stuck: >-
+    {% set ns = namespace(out=[], recent=false) %}
+    {% for light, sensors in watch.items() %}
+      {% set s = states[light] %}
+      {% if s is not none and s.state == 'on'
+            and s.last_changed <= now() - timedelta(minutes=15) %}
+        {% set ns.recent = false %}
+        {% for m in sensors %}
+          {% set ms = states[m] %}
+          {% if ms is not none and (ms.state == 'on'
+                or ms.last_changed > now() - timedelta(seconds=60)) %}
+            {% set ns.recent = true %}
+          {% endif %}
+        {% endfor %}
+        {% if not ns.recent %}{% set ns.out = ns.out + [light] %}{% endif %}
+      {% endif %}
+    {% endfor %}
+    {{ ns.out }}
+conditions:
+  - condition: template
+    value_template: "{{ stuck | count > 0 }}"
+actions:
+  - action: light.turn_off
+    continue_on_error: true
+    target:
+      entity_id: "{{ stuck }}"
+  - delay: "00:00:20"
+  - variables:
+      still_on: "{{ stuck | select('is_state', 'on') | list }}"
+  - if:
+      - condition: template
+        value_template: "{{ still_on | count > 0 }}"
+    then:
+      - action: light.turn_off
+        continue_on_error: true
+        target:
+          entity_id: "{{ still_on }}"
+      - delay: "00:00:20"
+  - variables:
+      final_on: "{{ stuck | select('is_state', 'on') | list }}"
+      names: "{{ expand(stuck) | map(attribute='name') | sort | join(', ') }}"
+  # Lights that refused twice AND whose port this rule hasn't restarted in
+  # the last 2 hours. A button's state is the time it was last pressed.
+  - variables:
+      cycle_lights: >-
+        {% set ns = namespace(out=[]) %}
+        {% for l in final_on %}
+          {% set b = port_btn.get(l) %}
+          {% if b and states[b] is not none and (states(b) == 'unknown'
+                or (as_datetime(states(b)) is not none
+                    and as_datetime(states(b)) < now() - timedelta(hours=2))) %}
+            {% set ns.out = ns.out + [l] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.out }}
+  - variables:
+      cycle_btns: >-
+        {% set ns = namespace(out=[]) %}
+        {% for l in cycle_lights %}{% set ns.out = ns.out + [port_btn[l]] %}{% endfor %}
+        {{ ns.out }}
+  - if:
+      - condition: template
+        value_template: "{{ cycle_btns | count > 0 }}"
+    then:
+      # Cut power to the light for a few seconds by restarting its PoE port.
+      - action: button.press
+        continue_on_error: true
+        target:
+          entity_id: "{{ cycle_btns }}"
+      - delay: "00:01:15"
+  - variables:
+      after_on: "{{ stuck | select('is_state', 'on') | list }}"
+  - action: notify.notify
+    continue_on_error: true
+    data:
+      title: Floodlight left on
+      message: >-
+        On 15+ minutes with no motion, so turned off: {{ names }}.
+        {% if cycle_lights | count > 0 %}Refused off twice, so I restarted
+        its switch port: {{ expand(cycle_lights) | map(attribute='name') | sort | join(', ') }}.{% endif %}
+        {% if after_on | count > 0 %}STILL ON: {{ expand(after_on) | map(attribute='name') | sort | join(', ') }}.{% endif %}
+  # If a light is still on, wait (up to 30 minutes) for it to go off before
+  # ending. With mode: single, that keeps you from getting an alert every
+  # 5 minutes about the same light.
+  - if:
+      - condition: template
+        value_template: "{{ after_on | count > 0 }}"
+    then:
+      - wait_template: "{{ after_on | select('is_state', 'on') | list | count == 0 }}"
+        timeout: "00:30:00"
+        continue_on_timeout: true
+mode: single
+max_exceeded: silent
