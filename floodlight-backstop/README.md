@@ -6,7 +6,7 @@
 
 **The fix:** a backstop that turns off any floodlight left on with no motion, and if a light refuses twice, restarts the PoE switch port that powers it.
 
-Full story: Rehearsal Notes #4 on the Home Assistant forum (link coming)
+Full story: [Rehearsal Notes #4 on the Home Assistant forum](https://community.home-assistant.io/t/rehearsal-notes-from-bell-house-4-the-floodlight-that-wouldnt-turn-off/1029512)
 
 ## The setup
 
