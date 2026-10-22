@@ -1,0 +1,56 @@
+# Window glass check: if a window's glass shakes but its open/closed
+# sensor doesn't change, the sensor may have missed the window moving.
+# Send one push naming the window.
+#
+# Example names: two windows here. For each window, add one trigger
+# (its glass/vibration sensor, with id = its open/closed sensor) and
+# one line under "names". binary_sensor.someone_home is our "anyone
+# home" sensor; use your own.
+alias: Window glass check
+description: >-
+  Glass moved but the window's open/closed sensor didn't change within
+  90 seconds: one push naming the window. Only while someone is home,
+  not while Pups Penned is on, and at most once every 10 minutes.
+mode: parallel
+max: 10
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.bedroom_window_glass
+    to: "on"
+    id: binary_sensor.bedroom_window
+  - trigger: state
+    entity_id: binary_sensor.office_window_glass
+    to: "on"
+    id: binary_sensor.office_window
+conditions:
+  # The push asks someone to check the window, so only when someone can.
+  - condition: state
+    entity_id: binary_sensor.someone_home
+    state: "on"
+  # Paused on purpose while the dogs are gated (see pups_penned.yaml).
+  - condition: state
+    entity_id: input_boolean.pups_penned
+    state: "off"
+  # At most one check every 10 minutes: a burst of bumps gives one push.
+  - condition: template
+    value_template: >-
+      {{ this.attributes.last_triggered is none or
+         (now() - this.attributes.last_triggered).total_seconds() > 600 }}
+actions:
+  - variables:
+      contact: "{{ trigger.id }}"
+      names:
+        binary_sensor.bedroom_window: Bedroom window
+        binary_sensor.office_window: Office window
+      start: "{{ as_timestamp(now()) }}"
+  # If the open/closed sensor changed in the minute before the shake,
+  # it caught the move. Nothing to report.
+  - condition: template
+    value_template: >-
+      {{ states[contact] is not none and
+         (now() - states[contact].last_changed).total_seconds() > 60 }}
+  # Give a slow sensor 90 seconds to report the move.
+  - wait_template: "{{ as_timestamp(states[contact].last_changed) > start | float(0) }}"
+    timeout:
+      seconds: 90
+    continue_on_timeout:
