@@ -1,0 +1,72 @@
+# Pups Penned: a switch that pauses the window glass check while the
+# dogs are gated. It turns itself off after 8 hours, and comes on by
+# itself when Workers Mode is turned on.
+#
+# Make two helpers first (Settings > Devices & services > Helpers):
+#   - Toggle: input_boolean.pups_penned (we gave it a dog icon, mdi:dog)
+#   - Timer:  timer.pups_penned_timer, duration 8:00:00, with
+#             "Restore" turned on so it survives a restart
+# input_boolean.workers_mode is our "contractors are here" switch;
+# use your own, or delete the last trigger and the last choice.
+alias: Pups Penned - 8-hour auto-off and Workers Mode turn-on
+description: >-
+  Turning Pups Penned on starts an 8-hour timer; when the timer ends,
+  Pups Penned turns itself off. Turning it off early cancels the timer.
+  Workers Mode turning on also turns Pups Penned on and restarts the
+  8 hours.
+mode: queued
+triggers:
+  - trigger: state
+    entity_id: input_boolean.pups_penned
+    from: "off"
+    to: "on"
+    id: penned_on
+  - trigger: state
+    entity_id: input_boolean.pups_penned
+    from: "on"
+    to: "off"
+    id: penned_off
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: timer.pups_penned_timer
+    id: timer_done
+  - trigger: state
+    entity_id: input_boolean.workers_mode
+    from: "off"
+    to: "on"
+    id: workers_on
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: penned_on
+        sequence:
+          - action: timer.start
+            target:
+              entity_id: timer.pups_penned_timer
+      - conditions:
+          - condition: trigger
+            id: penned_off
+        sequence:
+          - action: timer.cancel
+            target:
+              entity_id: timer.pups_penned_timer
+      - conditions:
+          - condition: trigger
+            id: timer_done
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.pups_penned
+      - conditions:
+          - condition: trigger
+            id: workers_on
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.pups_penned
+          # Restart the 8 hours even if Pups Penned was already on.
+          - action: timer.start
+            target:
+              entity_id: timer.pups_penned_timer
